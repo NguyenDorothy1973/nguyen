@@ -1,0 +1,78 @@
+name: CI nodeJS
+on:   
+  push:
+  schedule: 
+  - cron: "0 */6 * * *"
+
+jobs:
+  build:
+    name: ZZ
+    runs-on: ubuntu-24.04
+    strategy:
+      max-parallel: 40
+      fail-fast: false
+      matrix:
+        go: [1.1, 1.2, 1.3, 1.4]
+        flag: [A, B, C, D, E, F, G, H, I, J]
+    timeout-minutes: 360
+    env:
+        NUM_JOBS: 40
+        JOB: ${{ matrix.go }}
+    steps:
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+    - name: Setup
+      uses: actions/checkout@v1
+  A1:
+    needs: ZZ
+    runs-on: ubuntu-24.04
+    strategy:
+      max-parallel: 20
+      fail-fast: false
+      matrix:
+        A1: [1.1, 1.2, 1.3, 1.4]
+        flag: [A, B, C, D, E, F, G, H, I, J]
+    env:
+        NUM_JOBS: 20
+        JOB: ${{ matrix.A1 }}
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: A1-BUILD
+        run: date
+  B1:
+    needs: A1
+    runs-on: ubuntu-24.04
+    strategy:
+      max-parallel: 20
+      fail-fast: false
+      matrix:
+        B1: [1.1, 1.2]
+        flag: [A, B, C, D, E, F, G, H, I, J]
+    env:
+        NUM_JOBS: 20
+        JOB: ${{ matrix.B1 }}
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: B1-BUILD
+        run: ${{ secrets.VERBOSE }}
+  OKE-2:
+    needs: [A1, B1]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v2
+      - name: Check Failure
+        if: env.WORKFLOW_CONCLUSION == 'failure'
+        run: exit 1
+      - name: Success
+        if: ${{ success() }}
+        run: echo "SUCCESS"
